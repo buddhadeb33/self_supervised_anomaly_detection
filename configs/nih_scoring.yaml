@@ -1,0 +1,12 @@
+method: knn
+train_csv: splits/train.csv
+test_csv: splits/test.csv
+checkpoint: checkpoints/simclr/simclr_epoch_100.pt
+ssl_method: simclr
+backbone: resnet50
+projection_dim: 128
+hidden_dim: 2048
+batch_size: 64
+image_size: 224
+output: scores/nih_simclr_knn.csv
+
