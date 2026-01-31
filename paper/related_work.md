@@ -36,6 +36,29 @@ Legend: ★★★ seminal/required, ★★ highly relevant, ★ useful backgroun
 - ★ PadChest (Bustos et al., 2020): alternative distribution for robustness checks
 - ★ NIH ChestXray14 (Wang et al., 2017): legacy dataset; label noise considerations
 
+## Closest Overlap (Last 2–3 Years)
+No recent CXR paper appears to combine **dual-space anomaly scoring** with **cross-dataset
+evaluation** as a single, explicit framework. The closest overlaps are partial:
+
+- **MedIAnomaly (2024)** provides a multi-dataset medical anomaly benchmark (includes CXR
+  among other modalities) and emphasizes standardized evaluation, but it does not focus on
+  dual-space scoring or a dedicated CXR cross-dataset protocol.  
+  Link: https://arxiv.org/pdf/2404.04518
+- **CXR Foundation models (2024)** offer strong CXR representations and cross-site utility,
+  but they do not define an anomaly detection pipeline or dual-space scoring.  
+  Link: https://developers.google.com/health-ai-developer-foundations/cxr-foundation  
+  Link: https://github.com/google-health/cxr-foundation
+
+## How to Keep This Safely Non-Overcrowded
+- **Scope it tightly**: CXR anomaly detection with normal-only training and patient-wise
+  splits as a strict protocol.
+- **Show a gap**: report cross-dataset performance (NIH → CheXpert/MIMIC) and quantify the
+  drop; few CXR AD papers make this a primary result.
+- **Make the dual-space design central**: ablate global vs patch-only vs fused scoring.
+- **Limit the baselines but make them strong**: include one patch baseline (PatchCore/PaDiM)
+  and one SSL baseline (SimCLR/MoCo/MAE).
+- **Be compute-honest**: justify single-GPU feasibility and report efficiency trade-offs.
+
 ## Evaluation/Robustness
 - ★ Uncertainty calibration for medical AI
 - ★ Cross-dataset shift in chest X-ray (various surveys)

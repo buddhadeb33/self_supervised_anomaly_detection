@@ -14,10 +14,7 @@
 - Roll no.: cs24mtech15011
 - Email: cs24mtech15011@iith.ac.in
 
-### Team Member 3 (optional)
-- Name: N/A
-- Roll no.: N/A
-- Reason for third member: N/A (team size within limit)
+
 
 ## Project Details
 - Project Name: Self-Supervised Anomaly Detection on Chest X-rays
@@ -27,11 +24,18 @@
 Learn normal chest anatomy via self-supervision and detect unseen abnormalities using dual-space anomaly scoring with cross-dataset validation.
 
 ## Abstract (brief project description)
-We propose a self-supervised anomaly detection pipeline for chest X-rays that learns normal anatomy without explicit anomaly labels. The model is pretrained using SSL (SimCLR/MoCo/MAE) on normal images and anomalies are detected using dual-space scores that combine global embeddings with patch-level reconstruction maps. We evaluate on NIH ChestXray14 using patient-wise splits and report AUROC/AUPRC with ablations, and we test cross-dataset generalization on CheXpert/MIMIC-CXR. Explainability is included via Grad-CAM and MAE patch heatmaps, while keeping the approach feasible on a single GPU.
+We propose an end-to-end self-supervised anomaly detection pipeline for chest X-rays that learns normal anatomy without explicit anomaly labels. The approach pretrains visual encoders using SSL (SimCLR/MoCo/MAE) on normal images, then computes anomaly scores using a dual-space strategy that combines global embedding distance with patch-level reconstruction errors. We follow a patient-wise split protocol on NIH ChestXray14 and report AUROC/AUPRC along with FPR@95%TPR and sensitivity at 95% specificity, including ablations over pretraining data (normal-only vs all-image), scoring methods (kNN, Mahalanobis, OCSVM, MAE recon), and model size (ResNet-18/50, ViT-Tiny/Base). To assess robustness, we evaluate cross-dataset generalization on CheXpert or MIMIC-CXR without re-training. Explainability is integrated via Grad-CAM and MAE patch heatmaps to support clinical plausibility analysis. The system is designed for single-GPU feasibility, and results are packaged with reproducible configs and an experimental runner.
 
 ## Compute Feasibility Note (if asked)
 The project is designed for single-GPU training with efficient backbones (ResNet-18/50, ViT-Tiny/Base) and short ablations, satisfying the course compute constraints.
 
 ## Value-Add / Novelty Note (if asked)
-We emphasize dual-space scoring (global + patch), explicit normal-only protocols, and cross-dataset generalization with explainability as core contributions.
+Our value-add is not a new backbone, but a **protocol + scoring + evaluation package** that is missing in many CXR anomaly detection baselines. Concretely:
+
+- **Dual-space anomaly scoring**: combine global SSL embedding distance with patch-level reconstruction error, instead of relying on a single score.
+- **Protocol rigor**: patient-wise splits, normal-only training, and explicit ablations over normal-only vs all-image pretraining.
+- **Cross-dataset generalization as a primary result**: NIH → CheXpert/MIMIC evaluation without re-training to quantify domain shift.
+- **Explainability baked in**: Grad-CAM and MAE patch maps to support clinical plausibility discussion.
+- **Efficiency focus**: report accuracy vs model size (ResNet-18/50, ViT-Tiny/Base) to show feasibility under course compute limits.
+- **Reproducibility**: unified CLI and config-driven runner that makes experiments and ablations easy to repeat.
 
