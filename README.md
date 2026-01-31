@@ -37,5 +37,10 @@ evaluation, and explainability on NIH ChestXray14.
 - Deployment: reduce model size (ResNet-18), measure latency, try quantization.
 
 ## References
+
 - See `paper/related_work.md` for star-graded references and reading order.
 
+## Course Project Form
+
+- Proposal submission form: [Google Form](https://docs.google.com/forms/d/e/1FAIpQLSeTXIdRfQ4WR0rUublF3YzMJfVF0OPdChagthdBFs74gBZobA/viewform)
+- Slide deck: [Computer Vision Project](https://docs.google.com/presentation/d/1Vcgb1uLly2Mi90zD3hlfZbOynRS9jjKEfOmhO473nO4/edit?slide=id.p12#slide=id.p12)
