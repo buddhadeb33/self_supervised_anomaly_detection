@@ -1,0 +1,98 @@
+# Cross-Dataset Evaluation Configuration
+# Train on NIH ChestXray14, evaluate on CheXpert and/or MIMIC-CXR
+
+# =============================================================================
+# Source Dataset (Training)
+# =============================================================================
+source:
+  dataset: nih
+  csv_path: /path/to/Data_Entry_2017.csv
+  image_root: /path/to/nih_images
+  train_csv: splits/train.csv  # Normal-only training data
+
+# =============================================================================
+# Target Datasets (Evaluation)
+# =============================================================================
+targets:
+  - name: chexpert
+    dataset: chexpert
+    csv_path: /path/to/CheXpert-v1.0/valid.csv
+    image_root: /path/to/CheXpert-v1.0
+    treat_uncertain_as: negative  # Options: positive, negative, ignore
+
+  - name: mimic
+    dataset: mimic
+    metadata_csv: /path/to/mimic-cxr-2.0.0-metadata.csv
+    labels_csv: /path/to/mimic-cxr-2.0.0-chexpert.csv
+    image_root: /path/to/mimic-cxr-jpg
+    treat_uncertain_as: negative
+
+# =============================================================================
+# Model Configuration
+# =============================================================================
+model:
+  ssl_method: simclr  # Options: simclr, moco, dinov2_vits14, dinov2_vitb14, dinov2_vitl14
+  checkpoint: checkpoints/simclr/simclr_epoch_100.pt  # Not needed for dinov2
+  backbone: resnet50
+  projection_dim: 128
+  hidden_dim: 2048
+
+# =============================================================================
+# Scoring Configuration
+# =============================================================================
+scoring:
+  methods:
+    - name: knn
+      k: 5
+    - name: knn
+      k: 10
+    - name: mahalanobis
+    - name: ocsvm
+      nu: 0.1
+    - name: patchcore
+      coreset_ratio: 0.1
+      coreset_method: random
+      k: 9
+
+  # Dual-space scoring
+  dual_space:
+    enabled: true
+    global_method: knn
+    patch_method: patchcore
+    alpha: 0.5  # Weight for global scores (1-alpha for patch)
+
+# =============================================================================
+# Evaluation Configuration
+# =============================================================================
+evaluation:
+  batch_size: 32
+  image_size: 224
+  num_workers: 4
+  device: cuda
+
+  # Metrics
+  metrics:
+    - auroc
+    - auprc
+    - fpr_at_95_tpr
+    - sens_at_95_spec
+    - ece
+    - mce
+    - brier
+
+  # Bootstrap confidence intervals
+  bootstrap:
+    enabled: true
+    n_boot: 1000
+    seed: 42
+
+# =============================================================================
+# Output Configuration
+# =============================================================================
+output:
+  results_dir: results/cross_dataset
+  scores_dir: scores/cross_dataset
+  save_scores: true
+  save_heatmaps: false  # Set to true to save PatchCore heatmaps
+
+

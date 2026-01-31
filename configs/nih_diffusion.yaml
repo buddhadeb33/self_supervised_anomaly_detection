@@ -1,0 +1,79 @@
+# Diffusion-Based Anomaly Detection Configuration
+# Train a denoising diffusion model on normal CXR images and score anomalies via reconstruction error
+
+# =============================================================================
+# Training Configuration
+# =============================================================================
+training:
+  train_csv: splits/train.csv  # Normal-only training data
+  batch_size: 16
+  epochs: 50
+  lr: 0.0001
+  image_size: 224
+  timesteps: 1000
+  beta_schedule: cosine  # Options: cosine, linear
+  base_channels: 64  # Can reduce for faster training (e.g., 32)
+  output_dir: checkpoints/diffusion
+  num_workers: 4
+  device: cuda
+
+# =============================================================================
+# Scoring Configuration
+# =============================================================================
+scoring:
+  test_csv: splits/test.csv
+  checkpoint: checkpoints/diffusion/diffusion_epoch_50.pt
+  batch_size: 16
+  image_size: 224
+  timesteps: 1000
+  base_channels: 64
+  
+  # Reconstruction parameters
+  n_steps: 250  # Number of denoising steps (more = better quality, slower)
+  start_t: 250  # Starting noise level (higher = more noise added)
+  
+  # Patch-level scoring
+  use_patches: true
+  patch_size: 16
+  aggregation: max  # Options: max, mean
+  
+  output: scores/nih_diffusion.csv
+
+# =============================================================================
+# Evaluation Configuration
+# =============================================================================
+evaluation:
+  scores_csv: scores/nih_diffusion.csv
+  label_col: label
+  score_col: score
+  bootstrap: true
+  n_boot: 1000
+  output: results/nih_diffusion.json
+
+# =============================================================================
+# Ablation Sweeps
+# =============================================================================
+sweep:
+  # Different noise levels
+  - scoring:
+      start_t: 100
+      output: scores/nih_diffusion_t100.csv
+    evaluation:
+      scores_csv: scores/nih_diffusion_t100.csv
+      output: results/nih_diffusion_t100.json
+      
+  - scoring:
+      start_t: 250
+      output: scores/nih_diffusion_t250.csv
+    evaluation:
+      scores_csv: scores/nih_diffusion_t250.csv
+      output: results/nih_diffusion_t250.json
+      
+  - scoring:
+      start_t: 500
+      output: scores/nih_diffusion_t500.csv
+    evaluation:
+      scores_csv: scores/nih_diffusion_t500.csv
+      output: results/nih_diffusion_t500.json
+
+

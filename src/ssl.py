@@ -274,3 +274,162 @@ def train_mae(
 
         _save_checkpoint(model, optimizer, epoch, output_dir, "mae")
 
+
+# =============================================================================
+# DINOv2 Frozen Encoder
+# =============================================================================
+
+
+class DINOv2Encoder(nn.Module):
+    """
+    DINOv2 frozen encoder for feature extraction.
+    Uses pretrained DINOv2 models from torch hub.
+
+    Supported model sizes:
+    - dinov2_vits14: ViT-S/14 (21M params, 384 dim)
+    - dinov2_vitb14: ViT-B/14 (86M params, 768 dim)
+    - dinov2_vitl14: ViT-L/14 (300M params, 1024 dim)
+    - dinov2_vitg14: ViT-G/14 (1.1B params, 1536 dim) - requires significant memory
+    """
+
+    SUPPORTED_MODELS = {
+        "dinov2_vits14": 384,
+        "dinov2_vitb14": 768,
+        "dinov2_vitl14": 1024,
+        "dinov2_vitg14": 1536,
+    }
+
+    def __init__(
+        self,
+        model_name: str = "dinov2_vitb14",
+        freeze: bool = True,
+        return_patch_tokens: bool = False,
+    ) -> None:
+        """
+        Args:
+            model_name: One of dinov2_vits14, dinov2_vitb14, dinov2_vitl14, dinov2_vitg14
+            freeze: Whether to freeze the model weights (default: True)
+            return_patch_tokens: If True, return patch tokens instead of CLS token
+        """
+        super().__init__()
+        if model_name not in self.SUPPORTED_MODELS:
+            raise ValueError(
+                f"Unsupported model: {model_name}. "
+                f"Choose from: {list(self.SUPPORTED_MODELS.keys())}"
+            )
+
+        self.model_name = model_name
+        self.embed_dim = self.SUPPORTED_MODELS[model_name]
+        self.return_patch_tokens = return_patch_tokens
+
+        # Load from torch hub
+        self.model = torch.hub.load("facebookresearch/dinov2", model_name, pretrained=True)
+
+        if freeze:
+            self.model.eval()
+            for param in self.model.parameters():
+                param.requires_grad = False
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Extract features from images.
+
+        Args:
+            x: Input images of shape (B, 3, H, W). H and W should be divisible by 14.
+
+        Returns:
+            If return_patch_tokens=False: CLS token features of shape (B, embed_dim)
+            If return_patch_tokens=True: Patch tokens of shape (B, N_patches, embed_dim)
+        """
+        if self.return_patch_tokens:
+            # Get patch tokens (excluding CLS)
+            features = self.model.forward_features(x)
+            if isinstance(features, dict):
+                # Some versions return a dict
+                patch_tokens = features.get("x_norm_patchtokens", features.get("x_patchtokens"))
+                if patch_tokens is None:
+                    # Fallback: get all tokens and exclude CLS
+                    all_tokens = features.get("x_norm_clstoken", features.get("x"))
+                    if all_tokens is not None and all_tokens.dim() == 3:
+                        patch_tokens = all_tokens[:, 1:, :]  # Exclude CLS token
+                    else:
+                        patch_tokens = self.model(x)
+            else:
+                # Tensor output: (B, N+1, D) where first token is CLS
+                patch_tokens = features[:, 1:, :]
+            return patch_tokens
+        else:
+            # Get CLS token (global feature)
+            return self.model(x)
+
+    @property
+    def output_dim(self) -> int:
+        return self.embed_dim
+
+
+class DINOv2PatchExtractor(nn.Module):
+    """
+    Extract patch-level features from DINOv2 for PatchCore-style anomaly detection.
+    Reshapes patch tokens to spatial feature maps.
+    """
+
+    def __init__(
+        self,
+        model_name: str = "dinov2_vitb14",
+        freeze: bool = True,
+    ) -> None:
+        super().__init__()
+        self.encoder = DINOv2Encoder(
+            model_name=model_name,
+            freeze=freeze,
+            return_patch_tokens=True,
+        )
+        self.patch_size = 14  # DINOv2 uses 14x14 patches
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Extract spatial feature map from images.
+
+        Args:
+            x: Input images of shape (B, 3, H, W)
+
+        Returns:
+            Feature map of shape (B, embed_dim, H', W') where H'=H/14, W'=W/14
+        """
+        B, C, H, W = x.shape
+        patch_tokens = self.encoder(x)  # (B, N_patches, embed_dim)
+
+        # Compute spatial dimensions
+        h = H // self.patch_size
+        w = W // self.patch_size
+
+        # Reshape to spatial feature map
+        # patch_tokens: (B, h*w, D) -> (B, D, h, w)
+        feat_map = patch_tokens.permute(0, 2, 1).reshape(B, -1, h, w)
+        return feat_map
+
+    @property
+    def output_dim(self) -> int:
+        return self.encoder.output_dim
+
+
+def load_dinov2_encoder(
+    model_name: str = "dinov2_vitb14",
+    return_patch_tokens: bool = False,
+) -> DINOv2Encoder:
+    """
+    Convenience function to load a pretrained DINOv2 encoder.
+
+    Args:
+        model_name: One of dinov2_vits14, dinov2_vitb14, dinov2_vitl14, dinov2_vitg14
+        return_patch_tokens: If True, return patch tokens instead of CLS token
+
+    Returns:
+        Frozen DINOv2 encoder
+    """
+    return DINOv2Encoder(
+        model_name=model_name,
+        freeze=True,
+        return_patch_tokens=return_patch_tokens,
+    )
+
