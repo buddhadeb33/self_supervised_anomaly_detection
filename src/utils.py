@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import os
 import random
-from typing import List
+from typing import Any, Dict, List
 
 import numpy as np
 import torch
+import yaml
 
 
 def read_lines(path: str) -> List[str]:
@@ -18,4 +21,9 @@ def seed_everything(seed: int) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
+
+def load_config(path: str) -> Dict[str, Any]:
+    with open(path, "r", encoding="utf-8") as handle:
+        return yaml.safe_load(handle)
 

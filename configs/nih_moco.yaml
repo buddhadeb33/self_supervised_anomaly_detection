@@ -1,11 +1,15 @@
-method: moco
-train_csv: splits/train.csv
-batch_size: 64
-epochs: 100
-lr: 0.001
-image_size: 224
-backbone: resnet50
-projection_dim: 128
-hidden_dim: 2048
-output_dir: checkpoints/moco
+base:
+  ssl:
+    method: moco
+    train_csv: splits/train.csv
+    batch_size: 64
+    epochs: 100
+    lr: 0.001
+    image_size: 224
+    backbone: resnet50
+    projection_dim: 128
+    hidden_dim: 2048
+    output_dir: checkpoints/moco
+    num_workers: 4
+    device: cuda
 

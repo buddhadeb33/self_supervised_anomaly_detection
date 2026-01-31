@@ -1,0 +1,20 @@
+flowchart LR
+  dataIn["NIH_Metadata+Images"] --> split[PatientWiseSplits]
+  split --> trainSSL[SSL_Pretraining]
+  trainSSL --> embed[EmbeddingExtraction]
+  embed --> score[AnomalyScoring]
+  score --> eval[QuantitativeEval]
+  score --> explain[ExplainabilityMaps]
+  eval --> ablate[Ablations]
+  ablate --> report[PaperFigures]
+  explain --> report
+  eval --> cross[CrossDatasetEval]
+  cross --> report
+  report --> refine[MethodRefinement]
+  refine --> trainSSL
+
+  split --> artifacts1["splits/train,val,test.csv"]
+  trainSSL --> artifacts2["checkpoints/*.pt"]
+  score --> artifacts3["scores/*.csv"]
+  eval --> artifacts4["results/*.json"]
+

@@ -2,12 +2,77 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Callable, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from PIL import Image
+from torch.utils.data import Dataset
 
-from ..utils.io import read_lines, seed_everything
+from .utils import read_lines, seed_everything
+
+NO_FINDING_LABEL = "No Finding"
+
+
+def _parse_labels(label_str: str) -> list[str]:
+    if pd.isna(label_str):
+        return []
+    return [label.strip() for label in str(label_str).split("|") if label.strip()]
+
+
+def _is_normal(labels: list[str]) -> bool:
+    return len(labels) == 1 and labels[0] == NO_FINDING_LABEL
+
+
+def load_nih_metadata(csv_path: str, image_root: Optional[str] = None) -> pd.DataFrame:
+    """
+    Load NIH ChestXray14 metadata from the official CSV and compute basic fields.
+    """
+    df = pd.read_csv(csv_path)
+    df = df.rename(columns={"Image Index": "image_index"})
+    df["finding_labels"] = df["Finding Labels"].apply(_parse_labels)
+    df["is_normal"] = df["finding_labels"].apply(_is_normal)
+    df["is_abnormal"] = ~df["is_normal"]
+    df["patient_id"] = df["Patient ID"].astype(str)
+    if image_root:
+        df["image_path"] = df["image_index"].apply(lambda x: os.path.join(image_root, x))
+    return df
+
+
+class NIHChestXrayDataset(Dataset):
+    """
+    Minimal dataset for NIH ChestXray14 anomaly detection.
+    Expects a DataFrame with at least image_path and is_abnormal columns.
+    """
+
+    def __init__(
+        self,
+        dataframe: pd.DataFrame,
+        transform: Optional[Callable] = None,
+        return_metadata: bool = False,
+    ) -> None:
+        self.df = dataframe.reset_index(drop=True)
+        self.transform = transform
+        self.return_metadata = return_metadata
+
+    def __len__(self) -> int:
+        return len(self.df)
+
+    def __getitem__(self, idx: int):
+        row = self.df.iloc[idx]
+        img_path = row["image_path"]
+        image = Image.open(img_path).convert("RGB")
+        if self.transform:
+            image = self.transform(image)
+        label = 1 if row["is_abnormal"] else 0
+        if self.return_metadata:
+            meta = {
+                "image_index": row.get("image_index"),
+                "patient_id": row.get("patient_id"),
+                "finding_labels": row.get("finding_labels"),
+            }
+            return image, label, meta
+        return image, label
 
 
 @dataclass
@@ -38,7 +103,6 @@ def _assign_by_list(
     if train_val_images:
         df.loc[df["image_index"].isin(train_val_images), "split_hint"] = "trainval"
 
-    # Enforce patient-level separation: if any test image for a patient, keep all in test
     patient_test = set(df.loc[df["split_hint"] == "test", "patient_id"].unique())
     df.loc[df["patient_id"].isin(patient_test), "split_hint"] = "test"
 
@@ -78,7 +142,6 @@ def create_nih_splits(
             config.test_list,
         )
     else:
-        # Random patient split into trainval and test
         seed_everything(config.seed)
         patient_ids = df["patient_id"].unique()
         rng = np.random.default_rng(config.seed)
@@ -89,10 +152,8 @@ def create_nih_splits(
         trainval_df = df[~df["patient_id"].isin(test_patients)].copy()
 
     train_df, val_df = _patient_split(trainval_df, config.val_fraction, config.seed)
-
     if config.normal_only_train:
         train_df = train_df[train_df["is_normal"]].copy()
-
     return train_df, val_df, test_df
 
 

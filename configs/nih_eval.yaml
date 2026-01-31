@@ -1,6 +1,9 @@
-scores_csv: scores/nih_simclr_knn.csv
-label_col: label
-score_col: score
-bootstrap: true
-output: results/nih_simclr_knn_metrics.json
+base:
+  eval:
+    scores_csv: scores/nih_simclr_knn.csv
+    label_col: label
+    score_col: score
+    bootstrap: true
+    n_boot: 1000
+    output: results/nih_simclr_knn_metrics.json
 

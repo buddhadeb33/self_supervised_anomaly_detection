@@ -1,0 +1,35 @@
+base:
+  scoring:
+    method: knn
+    train_csv: splits/train.csv
+    test_csv: splits/test.csv
+    checkpoint: checkpoints/simclr/simclr_epoch_100.pt
+    ssl_method: simclr
+    backbone: resnet50
+    projection_dim: 128
+    hidden_dim: 2048
+    batch_size: 64
+    image_size: 224
+    num_workers: 4
+    device: cuda
+    k: 5
+    nu: 0.1
+  eval:
+    label_col: label
+    score_col: score
+    bootstrap: true
+    n_boot: 1000
+sweep:
+  - scoring:
+      k: 5
+      output: scores/nih_simclr_knn_k5.csv
+    eval:
+      scores_csv: scores/nih_simclr_knn_k5.csv
+      output: results/nih_simclr_knn_k5.json
+  - scoring:
+      k: 10
+      output: scores/nih_simclr_knn_k10.csv
+    eval:
+      scores_csv: scores/nih_simclr_knn_k10.csv
+      output: results/nih_simclr_knn_k10.json
+

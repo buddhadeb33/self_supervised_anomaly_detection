@@ -1,9 +1,13 @@
-method: mae
-train_csv: splits/train.csv
-batch_size: 64
-epochs: 100
-lr: 0.001
-image_size: 224
-mask_ratio: 0.75
-output_dir: checkpoints/mae
+base:
+  ssl:
+    method: mae
+    train_csv: splits/train.csv
+    batch_size: 64
+    epochs: 100
+    lr: 0.001
+    image_size: 224
+    mask_ratio: 0.75
+    output_dir: checkpoints/mae
+    num_workers: 4
+    device: cuda
 
